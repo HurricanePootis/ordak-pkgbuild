@@ -1,6 +1,6 @@
 # Maintainer: HurricanePootis <hurricanepootis@protonmail.com>
 pkgname=duckstation-git
-pkgver=0.1.r9440.ga266da9
+pkgver=0.1.r9937.eae25e0
 pkgrel=1
 pkgdesc="Fast PlayStation 1 emulator for x86-64/AArch32/AArch64/RV64"
 arch=(x86_64)
@@ -16,7 +16,7 @@ sha256sums=('SKIP')
 
 pkgver(){
 	cd "$srcdir/$pkgname"
-	git describe --long --abbrev=7 | sed 's/\([^-]*-g\)/r\1/;s/-/./g'
+	printf "0.1.r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
 }
 
 
