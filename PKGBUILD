@@ -1,6 +1,6 @@
 # Maintainer: HurricanePootis <hurricanepootis@protonmail.com>
 pkgname=duckstation-git
-pkgver=0.1.r9937.eae25e0
+pkgver=0.1.r9438.g628e41f
 pkgrel=1
 pkgdesc="Fast PlayStation 1 emulator for x86-64/AArch32/AArch64/RV64"
 arch=(x86_64)
@@ -10,24 +10,24 @@ depends=('glibc' 'gcc-libs' 'hicolor-icon-theme' 'qt6-base' 'libjpeg-turbo' 'zli
 makedepends=('git' 'cmake' 'lld' 'llvm' 'extra-cmake-modules' 'qt6-tools' 'patchelf' 'ninja' 'jack' 'pipewire' 'libpulse' 'sndio' 'libdecor' 'wayland' 'python' 'vulkan-headers' 'libunwind' 'clang')
 provides=("${pkgname::-4}")
 conflicts=("${pkgname::-4}")
-source=("$pkgname::git+$url.git")
+source=("$pkgname::git+$url.git"
+	"1.patch::$url/commit/5ed79613905a967fa99eee77c3ec025df534fe9d.patch"
+	"2.patch::$url/commit/30df16cc767297c544e1311a3de4d10da30fe00c.patch")
 options=(!lto !debug)
-sha256sums=('SKIP')
+sha256sums=('SKIP'
+            'c3415372ad2053631762d82f74347d9d08f8cb786a56c9f63e1c38f9277520dd'
+            '076bdafad5cd976ada63c892b1611325f000b650c573945b2aaf6259ab38effc')
 
 pkgver(){
 	cd "$srcdir/$pkgname"
-	printf "0.1.r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
+	git describe --long --abbrev=7 | sed 's/\([^-]*-g\)/r\1/;s/-/./g'
 }
 
 
 prepare() {
 	cd "$srcdir/$pkgname"
-	#set local git username and email to use git revert for chroot
-	git config user.email "swag@sawg.com"
-	git config user.name "Swag"
-	#lmao
-	git revert --no-edit 5ed79613905a967fa99eee77c3ec025df534fe9d
-	git revert --no-edit 30df16cc767297c544e1311a3de4d10da30fe00c
+	patch -p1 -R < "$srcdir/1.patch"
+	patch -p1 -R < "$srcdir/2.patch"
 }
 
 build() {
@@ -73,25 +73,11 @@ package() {
 
 	#Find version numbers
 	cd "$srcdir/build-deps/lib"
+	find . -type f -name '*.so*' -exec install -Dm755 {} -t "$pkgdir/usr/lib/${pkgname::-4}/lib" \;
 	_sdl3=$(find . ! -type l | grep libSDL3.so | sed 's/.\/libSDL3.so.//g')
 	_pluto=$(find . ! -type l | grep libplutosvg.so | sed 's/.\/libplutosvg.so.//g')
 	_soundtouch=$(find . ! -type l | grep libsoundtouch.so | sed 's/.\/libsoundtouch.so.//g')
 	_cross=$(find . ! -type l | grep libspirv-cross-c-shared.so | sed 's/.\/libspirv-cross-c-shared.so.//g')
-
-	#pluto
-	install -Dm755 "$srcdir/build-deps/lib/libplutosvg.so.${_pluto}" -t "$pkgdir/usr/lib/${pkgname::-4}/lib/"
-	#soundtouch
-	install -Dm755 "$srcdir/build-deps/lib/libsoundtouch.so.${_soundtouch}" -t "$pkgdir/usr/lib/${pkgname::-4}/lib"
-	#sdl
-	install -Dm755 "$srcdir/build-deps/lib/libSDL3.so.${_sdl3}" -t "$pkgdir/usr/lib/${pkgname::-4}/lib"
-	#cpuinfo
-	install -Dm755 "$srcdir/build-deps/lib/libcpuinfo.so" -t "$pkgdir/usr/lib/${pkgname::-4}/lib/"
-
-	#shaderc
-	install -Dm755 "$srcdir/build-deps/lib/libshaderc_ds.so" -t "$pkgdir/usr/lib/${pkgname::-4}/lib"
-
-	#spirv
-	install -Dm755 "$srcdir/build-deps/lib/libspirv-cross-c-shared.so.${_cross}" -t "$pkgdir/usr/lib/${pkgname::-4}/lib"
 
 	# patch duckstation-qt
 	patchelf --replace-needed libsoundtouch.so.2 /usr/lib/${pkgname::-4}/lib/libsoundtouch.so.${_soundtouch} "$pkgdir/usr/lib/${pkgname::-4}/${pkgname::-4}-qt"
@@ -100,6 +86,7 @@ package() {
 	patchelf --replace-needed libSDL3.so.0 /usr/lib/${pkgname::-4}/lib/libSDL3.so.${_sdl3} "$pkgdir/usr/lib/${pkgname::-4}/${pkgname::-4}-qt"
 	patchelf --add-needed /usr/lib/${pkgname::-4}/lib/libshaderc_ds.so "$pkgdir/usr/lib/${pkgname::-4}/${pkgname::-4}-qt"
 	patchelf --add-needed /usr/lib/${pkgname::-4}/lib/libspirv-cross-c-shared.so.${_cross} "$pkgdir/usr/lib/${pkgname::-4}/${pkgname::-4}-qt"
+	patchelf --add-needed /usr/lib/${pkgname::-4}/lib/libdiscord-rpc.so "$pkgdir/usr/lib/${pkgname::-4}/${pkgname::-4}-qt"
 	patchelf --remove-rpath "$pkgdir/usr/lib/${pkgname::-4}/${pkgname::-4}-qt"
 	patchelf --remove-rpath "$pkgdir/usr/lib/${pkgname::-4}/lib/libSDL3.so.${_sdl3}"
 	#run
