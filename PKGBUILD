@@ -1,6 +1,6 @@
 # Maintainer: HurricanePootis <hurricanepootis@protonmail.com>
 pkgname=duckstation-git
-pkgver=0.1.r9439.g5c682d2
+pkgver=0.1.r9443.gd2caabd
 pkgrel=1
 pkgdesc="Fast PlayStation 1 emulator for x86-64/AArch32/AArch64/RV64"
 arch=(x86_64)
@@ -10,13 +10,9 @@ depends=('glibc' 'gcc-libs' 'hicolor-icon-theme' 'qt6-base' 'libjpeg-turbo' 'zli
 makedepends=('git' 'cmake' 'lld' 'llvm' 'extra-cmake-modules' 'qt6-tools' 'patchelf' 'ninja' 'jack' 'pipewire' 'libpulse' 'sndio' 'libdecor' 'wayland' 'python' 'vulkan-headers' 'libunwind' 'clang')
 provides=("${pkgname::-4}")
 conflicts=("${pkgname::-4}")
-source=("$pkgname::git+$url.git"
-	"1.patch::$url/commit/5ed79613905a967fa99eee77c3ec025df534fe9d.patch"
-	"2.patch::$url/commit/30df16cc767297c544e1311a3de4d10da30fe00c.patch")
+source=("$pkgname::git+$url.git")
 options=(!lto !debug)
-sha256sums=('SKIP'
-            'c3415372ad2053631762d82f74347d9d08f8cb786a56c9f63e1c38f9277520dd'
-            '076bdafad5cd976ada63c892b1611325f000b650c573945b2aaf6259ab38effc')
+sha256sums=('SKIP')
 #Set this to true to build a debug build
 _debug=false
 _buildtype=Release
@@ -30,11 +26,8 @@ pkgver(){
 
 prepare() {
 	cd "$srcdir/$pkgname"
-	if [[ ! -f "$srcdir/$pkgname/scripts/packaging/arch/PKGBUILD" ]]
-	then
-	patch -p1 -R < "$srcdir/1.patch"
-	patch -p1 -R < "$srcdir/2.patch"
-	fi
+	sed -i 's/archlinux/fartlinux/g' CMakeModules/DuckStationBuildSummary.cmake
+	sed -i 's/\/usr\/lib/\/usr\/local\/lib/g' src/${pkgname::-4}-qt/qthost.cpp
 
 	if [[ $_debug = "true" ]]
 	then
