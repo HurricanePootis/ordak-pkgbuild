@@ -1,6 +1,6 @@
 # Maintainer: HurricanePootis <hurricanepootis@protonmail.com>
 pkgname=duckstation-git
-pkgver=0.1.r9438.g628e41f
+pkgver=0.1.r9439.g5c682d2
 pkgrel=1
 pkgdesc="Fast PlayStation 1 emulator for x86-64/AArch32/AArch64/RV64"
 arch=(x86_64)
@@ -17,6 +17,10 @@ options=(!lto !debug)
 sha256sums=('SKIP'
             'c3415372ad2053631762d82f74347d9d08f8cb786a56c9f63e1c38f9277520dd'
             '076bdafad5cd976ada63c892b1611325f000b650c573945b2aaf6259ab38effc')
+#Set this to true to build a debug build
+_debug=false
+_buildtype=Release
+[[ $_debug = "true" ]] && options+=(!strip) && _buildtype=RelWithDebInfo
 
 pkgver(){
 	cd "$srcdir/$pkgname"
@@ -26,18 +30,29 @@ pkgver(){
 
 prepare() {
 	cd "$srcdir/$pkgname"
+	if [[ ! -f "$srcdir/$pkgname/scripts/packaging/arch/PKGBUILD" ]]
+	then
 	patch -p1 -R < "$srcdir/1.patch"
 	patch -p1 -R < "$srcdir/2.patch"
+	fi
+
+	if [[ $_debug = "true" ]]
+	then
+	sed -i "s/Release/${_buildtype}/g" "$srcdir/$pkgname/scripts/deps/build-dependencies-linux.sh"
+	fi
 }
 
 build() {
 	cd "$srcdir"
+
 	if [[ ! -f "$srcdir/build-deps/lib/libsoundtouch.so" ]]
 	then
 	echo "Building deps"
 	mkdir build-deps && cd build-deps
-	"$srcdir/$pkgname"/scripts/deps/build-dependencies-linux.sh -system-freetype -system-harfbuzz -system-libjpeg -system-libpng -system-libwebp -system-libzip -system-zlib -system-zstd -system-qt
+	"$srcdir/$pkgname"/scripts/deps/build-dependencies-linux.sh -system-freetype -system-harfbuzz -system-libjpeg \
+	-system-libpng -system-libwebp -system-libzip -system-zlib -system-zstd -system-qt
 	fi
+
 	cd "$srcdir"
 	cmake -B build -S "$pkgname" \
 	-DCMAKE_C_COMPILER=clang \
@@ -46,7 +61,7 @@ build() {
 	-DCMAKE_CXX_FLAGS="$CXXFLAGS -flto=thin" \
 	-DCMAKE_EXE_LINKER_FLAGS_INIT="-fuse-ld=lld" \
 	-DCMAKE_SHARED_LINKER_FLAGS_INIT="-fuse-ld=lld" \
-	-DCMAKE_BUILD_TYPE=Release \
+	-DCMAKE_BUILD_TYPE=${_buildtype} \
 	-Dcpuinfo_DIR="$srcdir/build-deps/share/cpuinfo" \
 	-DDiscordRPC_DIR="$srcdir/build-deps/lib/cmake/DiscordRPC" \
 	-Dplutosvg_DIR="$srcdir/build-deps/lib/cmake/plutosvg" \
@@ -79,7 +94,7 @@ package() {
 	_soundtouch=$(find . ! -type l | grep libsoundtouch.so | sed 's/.\/libsoundtouch.so.//g')
 	_cross=$(find . ! -type l | grep libspirv-cross-c-shared.so | sed 's/.\/libspirv-cross-c-shared.so.//g')
 
-	# patch duckstation-qt
+	#patch duckstation-qt
 	patchelf --replace-needed libsoundtouch.so.2 /usr/lib/${pkgname::-4}/lib/libsoundtouch.so.${_soundtouch} "$pkgdir/usr/lib/${pkgname::-4}/${pkgname::-4}-qt"
 	patchelf --replace-needed libplutosvg.so.0 /usr/lib/${pkgname::-4}/lib/libplutosvg.so.${_pluto} "$pkgdir/usr/lib/${pkgname::-4}/${pkgname::-4}-qt"
 	patchelf --replace-needed libcpuinfo.so /usr/lib/${pkgname::-4}/lib/libcpuinfo.so "$pkgdir/usr/lib/${pkgname::-4}/${pkgname::-4}-qt"

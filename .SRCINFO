@@ -1,6 +1,6 @@
 pkgbase = duckstation-git
 	pkgdesc = Fast PlayStation 1 emulator for x86-64/AArch32/AArch64/RV64
-	pkgver = 0.1.r9438.g628e41f
+	pkgver = 0.1.r9439.g5c682d2
 	pkgrel = 1
 	url = https://github.com/stenzek/duckstation
 	arch = x86_64
