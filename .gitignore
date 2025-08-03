@@ -1,0 +1,7 @@
+#Do not package makepkg artifacts
+*.pkg.tar.zst
+src/
+pkg/
+*.log
+duckstation-git
+*.patch
